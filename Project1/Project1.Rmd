@@ -1,0 +1,25 @@
+---
+title: "Project1"
+author: "Erle E. Sandø, Simon Liabø"
+date: "2022-09-23"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Problem 1
+
+## 1
+
+### a)
+
+### b)
+```{r}
+
+```
+
+
+### c)
