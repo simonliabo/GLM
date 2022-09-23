@@ -18,7 +18,10 @@ library(tidyverse)
 
 ### b)
 ```{r}
-
+myglm = function(formula, data, start=NULL) {
+  y = data[1]
+  X = model.matrix(formula, data)
+}
 ```
 
 
