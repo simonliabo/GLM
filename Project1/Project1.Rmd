@@ -17,12 +17,95 @@ library(tidyverse)
 ### a)
 
 ### b)
+
 ```{r}
-myglm = function(formula, data, start=NULL) {
-  y = data[1]
+score = function(y, X, beta) 
+  {
+  eta = as.vector(X %*% beta)
+  lmdba = exp(eta)
+  score = apply((y - lmdba) * X,2,sum)
+  score
+}
+expected_fisher = function(X, beta) 
+  {
+  eta = as.vector(X %*% beta)
+  W = diag(exp(eta))
+  t(X) %*% W %*% X
+}
+log_likelihood = function(y, X, beta, lmbda = exp(as.vector(X %*% beta))) 
+  {
+  sum(ifelse(lmbda==0,0,y*log(lmbda) ) - lmbda)
+}
+myglm = function(formula, data, start=rep(0, ncol(model.matrix(formula, data)))) 
+  {
   X = model.matrix(formula, data)
+  response = as.character(formula)[2]
+  y = data[[response]]
+  beta = start
+  
+  s=1
+  while (s > (1e-10)) {
+    eta = as.vector(X %*% beta)
+    lmbda = exp(eta)
+    
+    score_val = score(y, X, beta)
+    f = expected_fisher(X, beta)
+    
+    beta = beta + solve(f) %*% score_val
+    s = sum(score_val^2)
+    }
+  #vcov
+  cov_mat = solve(f)
+  
+  #coefficients
+  sd_err = sqrt(diag(cov_mat))
+  coeff = cbind(beta, sd_err)
+  colnames(coeff) = c("Estimate", "Std.Error")
+  rownames(coeff) = paste0("beta_", seq_along(beta)-1)
+  
+  #deviance
+  dev = 2 * (log_likelihood(y, X, beta) - log_likelihood(y, X, beta, lmbda = y))
+  
+  list(coefficients = coeff, deviance = dev, vcov = cov_mat)
 }
 ```
 
-
 ### c)
+```{r}
+n = 1000
+k = 2
+
+#simulate data
+beta = rnorm(k+1)
+X = cbind(matrix(1,n),matrix(rnorm(n * k), nrow = n, ncol = k))
+eta = as.vector(X %*% beta)
+
+lmd = exp(eta)
+y = rpois(n,lmd)
+
+data_sim = as.data.frame(cbind(y,X[,2:3]))
+
+#fit models
+model_myglm = myglm(y~., data = data_sim)
+model_glm = glm(y~., data = data_sim, family = poisson(link=log))
+
+#evaluate
+coeff_diff = mean((model_myglm$coefficients[,1] -model_glm$coefficients)^2)
+coeff_diff
+
+vcov_diff = mean( (model_myglm$vcov - vcov(model_glm))^2)
+vcov_diff
+
+diff_from_real = mean((beta - model_myglm$coefficients[,1])^2)
+diff_from_real
+```
+
+
+### d)
+```{r}
+load(url("https://www.math.ntnu.no/emner/TMA4315/2022h/hoge-veluwe.Rdata"))
+model_myglm = myglm(y ~ t + I(t^2), data)
+model_myglm
+```
+
+
