@@ -95,11 +95,8 @@ coeff_diff
 
 vcov_diff = mean( (model_myglm$vcov - vcov(model_glm))^2)
 vcov_diff
-
-diff_from_real = mean((beta - model_myglm$coefficients[,1])^2)
-diff_from_real
 ```
-
+The model looks good. The results are very close to those obtained with glm() and vcov().
 
 ### d)
 ```{r}
