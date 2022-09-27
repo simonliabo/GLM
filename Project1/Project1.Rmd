@@ -12,9 +12,67 @@ library(tidyverse)
 
 # Problem 1
 
-## 1
-
 ### a)
+
+The pdf for a Poisson distribution is $f(x)=\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}$ where the expected value $\lambda$ is given by the cononical link function $\lambda_i=e^{\eta_i}$ and opposite $\eta_i = ln(\lambda_i)$.
+
+To find the log likelihood function we first need the likelihood function $L(\beta)$. $$L(\beta)=\prod_{i=1}^n{\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}}$$.
+
+Log likelihood function:
+
+\begin{equation}
+\begin{split}
+  l(\beta) & = \ln(\prod_{i=1}^n{\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}}) \\
+  & = \sum_{i=1}^n{\ln(\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!})} \\
+  & = \sum_{i=1}^n{\ln e^{-\lambda_i}+\ln\lambda_i^{y_i}-\ln y_i!} \\
+  & = \sum_{i=1}^n{-\lambda_i+y_i\ln\lambda_i-\ln y_i!} \\
+  & = \sum_{i=1}^n{-e^{x_i^T\beta}+y_ix_i^T\beta-\ln y_i!}
+\end{split}
+\end{equation}
+
+Fisher score function:
+
+\begin{equation}
+\begin{split}
+  s(\beta) & = \frac{\partial l}{\partial \beta} \\
+  & = \frac{\partial}{\partial \beta} (\sum_{i=1}^n{-e^{x_i^T\beta}+y_ix_i^T\beta-\ln y_i!}) \\
+  & = \sum_{i=1}^n\frac{\partial}{\partial \beta}({-e^{x_i^T\beta}+y_ix_i^T\beta-\ln y_i!}) \\
+  & = \sum_{i=1}^n{-x_ie^{x_i^T\beta}+y_ix_i} \\
+  & = \sum_{i=1}^nx_i(y_i-e^{x_i^T\beta})
+\end{split}
+\end{equation}
+
+
+
+Observed Fisher information:
+# noe feil her som gjør at koden ikke kjøres 
+
+\begin{equation}
+\begin{split}
+  H(\beta) & = -\frac{\partial^2l(\beta)}{\partial\beta\partial\beta^T} \\
+  & = - \frac{\partial s(\beta)}{\partial \beta^T} \\
+  & = - \frac{\partial}{\partial \beta^T}(\sum{i=1}^n(x_i(y_i-e^{\eta_i}))) \\
+  & = \sum{i=1}^n(\frac{\partial}{\partial \beta^T}(x_i(y_i-e^{\eta_i}))) \\
+  & = \sum{i=1}^n(x_i\frac{\partial}{\partial\beta^T}e^{\eta_i}) \\
+  & = \sum{i=1}^n(x_i\frac{\partial \eta_i}{\partial\beta^T}e^{\eta_i}) \\
+  & = \sum{i=1}^n(x_ix_i^T\lambda_i)
+\end{split}
+\end{equation}
+
+
+
+Expected Fisher information:
+
+\begin{equation}
+\begin{split}
+  F(\beta) & = E[s_i(\beta)\cdot s_i^T(\beta)] \\
+  & = E[(y_i-\lambda_i)x_i\cdot(y_i-\lambda_i)x_i^T)] \\
+  & = E[x_i x_i^T(y_i-\lambda_i)^2] \\
+  & = x_ix_i^TE[(y_i-\lambda_i)^2] \\
+  & = x_ix_i^T\cdot Var y_i \\
+  & = x_ix_i^T \lambda_i
+\end{split}
+\end{equation}
 
 ### b)
 
@@ -74,35 +132,46 @@ myglm = function(formula, data, start=rep(0, ncol(model.matrix(formula, data))))
 ```{r}
 n = 1000
 k = 2
-
 #simulate data
 beta = rnorm(k+1)
 X = cbind(matrix(1,n),matrix(rnorm(n * k), nrow = n, ncol = k))
 eta = as.vector(X %*% beta)
-
 lmd = exp(eta)
 y = rpois(n,lmd)
-
 data_sim = as.data.frame(cbind(y,X[,2:3]))
-
 #fit models
 model_myglm = myglm(y~., data = data_sim)
 model_glm = glm(y~., data = data_sim, family = poisson(link=log))
-
 #evaluate
 coeff_diff = mean((model_myglm$coefficients[,1] -model_glm$coefficients)^2)
 coeff_diff
-
 vcov_diff = mean( (model_myglm$vcov - vcov(model_glm))^2)
 vcov_diff
 ```
 The model looks good. The results are very close to those obtained with glm() and vcov().
 
-### d)
-```{r}
+
+# Problem 2
+```{r task2}
 load(url("https://www.math.ntnu.no/emner/TMA4315/2022h/hoge-veluwe.Rdata"))
-model_myglm = myglm(y ~ t + I(t^2), data)
-model_myglm
 ```
 
+In problem 2 we will consider a data frame containing data on the bird Great tit in the national park of Hoge Veluwe. The data was collected on 135 female birds in the summer of 2005. 
 
+The response variable is the number of fledglings leaving the nest, which relies on the time of initiate breeding and the number of fledglings for each bird, plus the timing of food resources. The number of fledglings follow a poisson distribution with expectation $\lambda_i(t_i)$. This dependence is explained by a gaussian function $$\lambda_0\exp(-\frac{(t_i-\theta)^2}{2\omega^2})$$.
+
+
+### a)
+In the expression above 
+$\lambda_0$ is the number of fledglings when it is the highest.
+$\Theta$ is the mean time, E(t), that is the time when there is the most fledglings. (?)
+$\omega$ represents how much variance there is in the number of fledglings.
+
+### b)
+
+A generalized linear model needs a random component, a systematic component and a link function which can give the relations between the GLM parameters contained in $\beta$ and $(\lambda_0,\theta,\omega)$.
+
+In this situation the random component is $y_i$ which as said follows a poisson distribution. The systematic component is $\eta_i=t_i^T\beta$, and the relation can be explained by $\eta_i=\ln(\lambda_i)$ which is a canonical link function.
+
+
+The link function gives the relation between $\beta$ and $(\lambda_0,\theta,\omega)$: $$\eta_i = \beta_0+\beta_1t_i+\beta_2t_i^2=\log(\lambda_i) = \log(\lambda_0+\exp(-\frac{(t_i-\theta)^2}{2\omega^2})) = \log(\lambda_0)-\frac{(t_i-\theta)^2}{2\omega^2} $$
