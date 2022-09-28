@@ -1,7 +1,7 @@
 ---
-title: "Project1"
-author: "Erle E. Sandø, Simon Liabø"
-date: "2022-09-23"
+title: "Project 1"
+author: "Erlees@stud.ntnu.no (10028), Simonli@stud.ntnu.no (10014)"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 ---
 
@@ -15,19 +15,16 @@ library(gridExtra)
 
 ### a)
 
-The pdf for a Poisson distribution is $f(x)=\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}$ where the expected value $\lambda$ is given by the cononical link function $\lambda_i=e^{\eta_i}$ and opposite $\eta_i = ln(\lambda_i)$.
-
-To find the log likelihood function we first need the likelihood function $L(\beta)$. $$L(\beta)=\prod_{i=1}^n{\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}}$$.
+The pdf for a Poisson distribution is $f(x)=\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}$ where the expected value $\lambda$ is given by the cononical link function $\lambda_i=e^{\eta_i}$ and opposite $\eta_i = \ln(\lambda_i)$. To find the log likelihood function we first need the likelihood function $L(\beta)$. $$L(\beta)=\prod_{i=1}^n{\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}}.$$ Fahrmeir (2013, p.654) says the factors $\frac{1}{y_i!}$ can be omitted when maximizing the likelihood because they do not depend on $\lambda$. I therefore exclude these factors when deriving the expressions.
 
 Log likelihood function:
 
 \begin{equation}
 \begin{split}
-  l(\beta) & = \ln(\prod_{i=1}^n{\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}}) \\
-  & = \sum_{i=1}^n{\ln(\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!})} \\
-  & = \sum_{i=1}^n{\ln e^{-\lambda_i}+\ln\lambda_i^{y_i}-\ln y_i!} \\
-  & = \sum_{i=1}^n{-\lambda_i+y_i\ln\lambda_i-\ln y_i!} \\
-  & = \sum_{i=1}^n{-e^{x_i^T\beta}+y_ix_i^T\beta-\ln y_i!}
+  l(\beta) & = \ln(\prod_{i=1}^n{e^{-\lambda_i}\lambda_i^{y_i}}) \\
+  & = \sum_{i=1}^n{\ln(e^{-\lambda_i}\lambda_i^{y_i})} \\
+  & = \sum_{i=1}^n{\ln e^{-\lambda_i}+\ln\lambda_i^{y_i}} \\
+  & = \sum_{i=1}^n{-\lambda_i+y_i\ln\lambda_i}
 \end{split}
 \end{equation}
 
@@ -36,10 +33,10 @@ Fisher score function:
 \begin{equation}
 \begin{split}
   s(\beta) & = \frac{\partial l}{\partial \beta} \\
-  & = \frac{\partial}{\partial \beta} (\sum_{i=1}^n{-e^{x_i^T\beta}+y_ix_i^T\beta-\ln y_i!}) \\
-  & = \sum_{i=1}^n\frac{\partial}{\partial \beta}({-e^{x_i^T\beta}+y_ix_i^T\beta-\ln y_i!}) \\
-  & = \sum_{i=1}^n{-x_ie^{x_i^T\beta}+y_ix_i} \\
-  & = \sum_{i=1}^nx_i(y_i-e^{x_i^T\beta})
+  & = \frac{\partial}{\partial \beta} (\sum_{i=1}^n{-\lambda_i+y_ix_i^T\beta}) \\
+  & = \sum_{i=1}^n\frac{\partial}{\partial \beta}({-\lambda_i+y_ix_i^T\beta}) \\
+  & = \sum_{i=1}^n{-x_i\lambda_i+y_ix_i} \\
+  & = \sum_{i=1}^nx_i(y_i-\lambda_i)
 \end{split}
 \end{equation}
 
@@ -51,28 +48,33 @@ Observed Fisher information:
 \begin{split}
   H(\beta) & = -\frac{\partial^2l(\beta)}{\partial\beta\partial\beta^T} \\
   & = - \frac{\partial s(\beta)}{\partial \beta^T} \\
-  & = - \frac{\partial}{\partial \beta^T}(\sum{i=1}^n(x_i(y_i-e^{\eta_i}))) \\
-  & = \sum{i=1}^n(\frac{\partial}{\partial \beta^T}(x_i(y_i-e^{\eta_i}))) \\
-  & = \sum{i=1}^n(x_i\frac{\partial}{\partial\beta^T}e^{\eta_i}) \\
-  & = \sum{i=1}^n(x_i\frac{\partial \eta_i}{\partial\beta^T}e^{\eta_i}) \\
-  & = \sum{i=1}^n(x_ix_i^T\lambda_i)
+  & = \frac{\partial}{\partial \beta^T}(\sum_{i=1}^nx_i(\lambda_i-y_i) \\
+  & = \sum_{i=1}^n\frac{\partial}{\partial \beta^T}(x_i(y_i-\lambda_i)) \\
+  & = \sum_{i=1}^nx_i\frac{\partial\lambda_i}{\partial\beta^T} \\
+  & = \sum_{i=1}^nx_i\frac{\partial \lambda_i \eta_i}{\partial\eta_i}\cdot \frac{\partial \eta_i}{\partial\beta^T} \\
+  & = \sum_{i=1}^nx_i\lambda_ix_i^T\\
+  & = X^TWX
 \end{split}
 \end{equation}
-
 
 
 Expected Fisher information:
 
 \begin{equation}
 \begin{split}
-  F(\beta) & = E[s_i(\beta)\cdot s_i^T(\beta)] \\
-  & = E[(y_i-\lambda_i)x_i\cdot(y_i-\lambda_i)x_i^T)] \\
-  & = E[x_i x_i^T(y_i-\lambda_i)^2] \\
-  & = x_ix_i^TE[(y_i-\lambda_i)^2] \\
-  & = x_ix_i^T\cdot Var y_i \\
-  & = x_ix_i^T \lambda_i
+  F(\beta) & = \sum_{i=1}^n E[s_i(\beta)\cdot s_i^T(\beta)] \\
+  & = \sum_{i=1}^n E[(y_i-\lambda_i)x_i\cdot(y_i-\lambda_i)x_i^T)] \\
+  & = \sum_{i=1}^n E[x_i x_i^T(y_i-\lambda_i)^2] \\
+  & = \sum_{i=1}^n x_ix_i^TE[(y_i-\lambda_i)^2] \\
+  & = \sum_{i=1}^n x_ix_i^T\cdot Var y_i \\
+  & = \sum_{i=1}^n x_ix_i^T \lambda_i \\
+  & = X^TWX
 \end{split}
 \end{equation}
+
+In the equations for observed and expected Fisher information, we use a matrix $W=\text{diag}(\lambda_1,\lambda_2,\dots,\lambda_n)$. We observe that the expected Fisher information is equal to the observed Fisher information. This is because the observed Fisher information do not depend on $y_i$, and the logit is the cononical link function.
+
+\newpage
 
 ### b)
 
@@ -162,19 +164,28 @@ The response variable is the number of fledglings leaving the nest, which relies
 
 
 ### a)
-In the expression above 
-$\lambda_0$ is the number of fledglings when it is the highest.
-$\Theta$ is the mean time, E(t), that is the time when there is the most fledglings. (?)
-$\omega$ represents how much variance there is in the number of fledglings.
+In the gaussian distribution defined by the expression above 
+$\lambda_0$ is the highest number of expected fledglings, or $\lambda_i$ at $t_i=\theta$.
+$\Theta$ is the time at which the expected number of fledglings is the highest, the optimal time.
+$\omega$ is the variance of the expected number of fledglings.
 
 ### b)
 
 A generalized linear model needs a random component, a systematic component and a link function which can give the relations between the GLM parameters contained in $\beta$ and $(\lambda_0,\theta,\omega)$.
 
-In this situation the random component is $y_i$ which as said follows a poisson distribution. The systematic component is $\eta_i=t_i^T\beta$, and the relation can be explained by $\eta_i=\ln(\lambda_i)$ which is a canonical link function.
+In this situation the random component is $y_i$ which as said follows a poisson distribution. The systematic component is $\eta_i=t_i^T\beta$, and the relation can be explained by $\eta_i=\log(\lambda_i)$ which is a canonical link function.
 
+The link function gives $$\eta_i = \beta_0+\beta_1t_i+\beta_2t_i^2=\log(\lambda_i) = \log(\lambda_0+\exp(-\frac{(t_i-\theta)^2}{2\omega^2})) = \log(\lambda_0)-\frac{(t_i-\theta)^2}{2\omega^2} $$
 
-The link function gives the relation between $\beta$ and $(\lambda_0,\theta,\omega)$: $$\eta_i = \beta_0+\beta_1t_i+\beta_2t_i^2=\log(\lambda_i) = \log(\lambda_0+\exp(-\frac{(t_i-\theta)^2}{2\omega^2})) = \log(\lambda_0)-\frac{(t_i-\theta)^2}{2\omega^2} $$
+Hence, the relation between $\beta$ and $(\lambda_0,\theta,\omega)$ is
+
+\begin{equation}
+\begin{split}
+  \beta_0+\beta_1t_i+\beta_2t_i^2 &= \log(\lambda_0)-\frac{(t_i-\theta)^2}{2\omega^2}\\
+  & = \log(\lambda_0)-\frac{1}{2\omega^2}(t_i^2-2t_i\theta+\theta^2)\\
+  & = (\log(\lambda_0)-\frac{\theta^2}{2\omega^2})+(\frac{\theta}{\omega^2})t_i+(-\frac{1}{2\omega^2})t_i^2
+\end{split}
+\end{equation}
 
 ### c)
 ```{r task2c}
@@ -302,9 +313,9 @@ We speculate that the process of "whether any fledglings leave the nest" (binary
 
 \begin{equation}
 \begin{split}
-  \hat\beta_0 &= \log(\lambda_0) -\frac{\theta^2}{2\omega^2}\\ 
-  \hat\beta_1 &= \frac{\theta}{\omega^2}\\ 
-  \hat\beta_2 &= -\frac{1}{2\omega^2}
+  \hat\beta_0 &= \log(\lambda_0) -\frac{\hat\theta^2}{2\hat\omega^2}\\ 
+  \hat\beta_1 &= \frac{\hat\theta}{\hat\omega^2}\\ 
+  \hat\beta_2 &= -\frac{1}{2\hat\omega^2}
 \end{split}
 \end{equation}
 
@@ -318,12 +329,11 @@ We speculate that the process of "whether any fledglings leave the nest" (binary
 ```{r task2f}
 beta_1 <- coef(m.birds)[2]
 beta_2 <- coef(m.birds)[3]
-
 omega <- sqrt(-1/(2*beta_2))
 theta <- beta_1/(-2*beta_2)
 ```
 
-By using the equations and chunk above we have found that $\omega=`r omega`$ and $\theta=`r theta`$.
+By using the equations and chunk above we have found that $\hat\omega=`r omega`$ and $\hat\theta=`r theta`$.
 
 In order to find the standard error for $\omega$ and $\theta$ we use the delta method to find the variance of the two parameters:
 
@@ -336,7 +346,6 @@ In order to find the standard error for $\omega$ and $\theta$ we use the delta m
 \end{equation}
 
 
-
 \begin{equation}
 \begin{split}
   \text{Var}(\hat\theta) &= (\frac{\partial h}{\partial \hat{\beta_1}})^2\cdot \text{Var}(\hat{\beta_1}) + (\frac{\partial h}{\partial \hat{\beta_2}})^2\cdot \text{Var}(\hat{\beta_2}) + 2(\frac{\partial h}{\partial \hat{\beta_1}})(\frac{\partial h}{\hat\beta_2})\cdot \text{Cov}(\hat{\beta_1},\hat{\beta_2}) \\
@@ -345,23 +354,21 @@ In order to find the standard error for $\omega$ and $\theta$ we use the delta m
 \end{equation}
 
 
-
 ```{r task2f_2}
 # Variance and covariance
 var.beta_1 <- m.birds$vcov[2,2]
 var.beta_2 <- m.birds$vcov[3,3]
 cov.beta_12 <- m.birds$vcov[2:3,2:3]
-
 #gradient of g and h
 gradient_g <- c(0,1/sqrt(-8*beta_2^3))
 gradient_h <- c(-1/(2*beta_2),beta_1/(2*beta_2^2))
-
 # Computing standard errors
 sd_omega <- sqrt(t(gradient_g)%*%cov.beta_12%*%gradient_g)
 sd_theta <- sqrt(t(gradient_h)%*%cov.beta_12%*%gradient_h)
 ```
 
 The standard error for $\omega$ and $\theta$ respectively is `r sd_omega` and `r sd_theta`.
+
 
 ### g)
 
