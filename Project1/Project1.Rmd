@@ -365,7 +365,7 @@ The standard error for $\omega$ and $\theta$ respectively is `r sd_omega` and `r
 
 ### g)
 
-Based on the fitted model the estimated optimal date is $\theta$, as the expected number of fledglings on time t $\lambda_i(t)$ is gaussian distributed with mean $\theta$. Because of global warming, the actual mean time can change to earlier dates. We will perform a hypothesis test to check if this is the case. We let $\mu$ denote the mean value of $t$, and define the hypothesis as $$H_0: \theta = \mu; H_1: \theta\neq\mu.$$ We must assume that $\theta$ and the mean $\mu$ is approximately gaussian, and that they are independent of each other. As $\mu$ is found from some given values of $t$, and $\theta$ can be seen as a function of $\y_i$ s, we can assume this is the case.
+Based on the fitted model the estimated optimal date is $\theta$, as the expected number of fledglings on time t $\lambda_i(t)$ is gaussian distributed with mean $\theta$. Because of global warming, the actual mean time can change to earlier dates. We will perform a hypothesis test to check if this is the case. We let $\mu$ denote the mean value of $t$, and define the hypothesis as $$H_0: \theta = \mu; H_1: \theta\neq\mu.$$ We must assume that $\theta$ and the mean $\mu$ is approximately gaussian, and that they are independent of each other. As $\mu$ is found from some given values of $t$, and $\theta$ can be seen as a function of $y_i$ s, we can assume this is the case.
 
 ```{r task 2g}
 ts <- data[,2]
@@ -377,4 +377,34 @@ p_val <- 2*pnorm(-abs(z.obs))  # symmatry of normal distribution
 The p-value for this hypothesis test is `r p_val`, which indicates that we can reject the null hypothesis for a significance level of 0.05. That is, the mean value of t in the population we are looking at is different from the estimated optimal time based on the fitted model.
 
 ### h)
+
+```{r}
+d.boot = data
+n = length(d.boot$y)
+
+#matrix for recording betas
+beta_boot_matrix = matrix(ncol=3, nrow=1000)
+
+#loop
+for (i in 1:1000) {
+  #simulating y-s
+  y_boot = rpois(n, d.boot$E_y)
+  d.boot$y = y_boot
+  #refitting model
+  m.boot = myglm(y~t+I(t^2), data = d.boot)
+  #recording beta
+  beta_boot = m.boot$coefficients[,1]
+  beta_boot_matrix[i,] = beta_boot
+}
+
+#calculating the variance from parametric bootstrapping
+var_boot = diag(var(beta_boot_matrix))
+#the variance from originally fitted model
+var_model = diag(m.birds$vcov)
+
+var_boot
+var_model
+```
+
+The estimated variance, from simulation, is very similar to what we expect from Expected Fisher Information. So the Expected Fisher Information is a good approximation.
 
