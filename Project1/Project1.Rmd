@@ -8,6 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(gridExtra)
 ```
 
 # Problem 1
@@ -45,7 +46,6 @@ Fisher score function:
 
 
 Observed Fisher information:
-# noe feil her som gjør at koden ikke kjøres 
 
 \begin{equation}
 \begin{split}
@@ -122,7 +122,7 @@ myglm = function(formula, data, start=rep(0, ncol(model.matrix(formula, data))))
   rownames(coeff) = paste0("beta_", seq_along(beta)-1)
   
   #deviance
-  dev = 2 * (log_likelihood(y, X, beta) - log_likelihood(y, X, beta, lmbda = y))
+  dev = 2 * (log_likelihood(y, X, beta, lmbda = y) - log_likelihood(y, X, beta))
   
   list(coefficients = coeff, deviance = dev, vcov = cov_mat)
 }
@@ -175,3 +175,206 @@ In this situation the random component is $y_i$ which as said follows a poisson 
 
 
 The link function gives the relation between $\beta$ and $(\lambda_0,\theta,\omega)$: $$\eta_i = \beta_0+\beta_1t_i+\beta_2t_i^2=\log(\lambda_i) = \log(\lambda_0+\exp(-\frac{(t_i-\theta)^2}{2\omega^2})) = \log(\lambda_0)-\frac{(t_i-\theta)^2}{2\omega^2} $$
+
+### c)
+```{r task2c}
+m.birds <- myglm(y~t+I(t^2), data=data)
+m.birds
+```
+
+### d)
+
+To check if the data provides evidence of a quadratic effect of $t$ we perform a hypothesis test, with $$H_0: \beta_2 = 0; H_1: \beta_2 \neq 0$$. We then fit two models; one with the quadratic effect of $t$ and one without. We know the deviance for both models, and that, under the null hypothesis, the difference between the deviance is asymptoticly chi-squared distributed with one degree of freedom. 
+
+```{r task2d}
+m1 <- m.birds
+m2 <- myglm(y~t, data=data)
+
+dev1 <- deviance(m1)
+dev2 <- deviance(m2)
+devdiff <- dev2-dev1
+
+p_val <- 1-pchisq(devdiff, 1)
+p_val
+```
+
+As the p-value is `r p_val`, which is less than the significance level 0.05, we can reject the null hypothesis. That is, there is evidence that there is a quadratic effect of $t$ in the data.
+
+### e)
+For sufficiently large number of observations, $n$, the deviance, $D$, is approximately $\chi_{n-p}^2-$distributed. We do a hypothesis test with $H_0$: The model is a good fit, and $H_1$: The model fit is bad.
+
+```{r}
+n = length(data$t)
+p = nrow(m.birds$coefficients)
+df = n-p
+D = m.birds$deviance
+
+p_value = 1 - pchisq(D, df)
+p_value
+```
+
+The p-value is smaller than any significance level we might want to choose. We therefore reject $H_0$ and conclude that the model is not a good fit.
+
+We take a closer look at our data to examine why our model is not satisfying. 
+
+The plots below show the data in a few different ways: y against t, y against the expected value (from the fitted model), and the residuals against the expected value. For all of the plots the black line is the expected value of y, and the dotted blue lines show the variance.
+
+```{r}
+#calculating expected values, lambda, and residuals, based on the model fit.
+beta = m.birds$coefficients[,1]
+lmda = exp(beta[1])*exp(beta[2]*data$t)*exp(beta[3]*(data$t)^2)
+E_y = lmda
+data = cbind(data, E_y)
+names(data)[3] = "E_y"
+res = data$y-data$E_y
+data = cbind(data, res)
+names(data)[4] = "res"
+```
+
+```{r, echo=FALSE}
+p.res = ggplot(data, aes(x=t)) +
+  geom_point(aes(y=y, color=abs(res))) +
+  scale_color_continuous(low = "black", high = "red") +
+  guides(color = "none") +
+  geom_line(aes(y=E_y)) +
+  geom_line(aes(y=E_y+E_y), color="blue", linetype="dashed") +
+  geom_line(aes(y=E_y-E_y), color="blue", linetype="dashed") 
+  #geom_segment(aes(y = y,xend = t, yend = lmda), alpha = .2)
+
+
+p.res_2 = ggplot(data, aes(x=E_y)) +
+  geom_point(aes(y=y, color=abs(res))) +
+  scale_color_continuous(low = "black", high = "red") +
+  guides(color = "none") +
+  geom_line(aes(y=E_y)) +
+  geom_line(aes(y=E_y+E_y), color="blue", linetype="dashed") +
+  geom_line(aes(y=E_y-E_y), color="blue", linetype="dashed")
+
+
+p.res_3 = ggplot(data, aes(x=E_y)) +
+  geom_point(aes(y=res, color=abs(res))) +
+  scale_color_continuous(low = "black", high = "red") +
+  guides(color = "none") +
+  geom_line(aes(y=0), color="black") +
+  geom_line(aes(y=E_y), color="blue", linetype="dashed") +
+  geom_line(aes(y=-E_y), color="blue", linetype="dashed") 
+
+
+grid.arrange(p.res,p.res_2,p.res_3,
+  widths = c(1, 1, 1, 1),
+  layout_matrix = rbind(c(1, 1, 2, 2),
+                        c(NA, 3, 3, NA))
+)
+```
+
+We observe, especially from the third plot, that the variance assumption seems fine. The residuals "fan out" for larger expected values as expected. The data might vary a bit more than expected, but lack of an over-dispersion parameter is probably not our main problem here. 
+
+We see that the data, y, tend to miss more frequently above what the model predicts than below. y is also 0 more frequently than we would expect from the model, both when the model predict low and high values.
+
+We make another plot to get a better idea of what might be wrong. We simulate data from the model, using bootstrapping to sample t, and plot density plots of the data and simulated data. Red is the actual data, blue is the simulated data, and the vertical, dotted lines are the means.
+
+```{r}
+#simulate data from bootstrap sample of t
+n = 1000
+t_sim = sample(data$t, n, replace=TRUE)
+lmdbd_sim = exp(beta[1])*exp(beta[2]*t_sim)*exp(beta[3]*(t_sim)^2)
+y_sim = rpois(n,lmdbd_sim)
+d.sim = as.data.frame(cbind(y_sim,t_sim))
+```
+
+```{r, echo=FALSE}
+p = ggplot(data, aes(x=y)) +
+  geom_histogram(aes(y=..density..),binwidth = 1, color="black", fill="red", alpha=.2) +
+  geom_histogram(data=d.sim, aes(x=y_sim, y=..density..),binwidth = 1, color="black", fill="blue", alpha=.2) +
+  geom_vline(aes(xintercept=mean(y)), color="red", linetype="dashed", size = 1) +
+  geom_vline(data=d.sim,aes(xintercept=mean(y_sim)), color="blue", linetype="dashed", size = 1) +
+  geom_density(color="red", size = 1) +
+  geom_density(data=d.sim, aes(x=y_sim), color="blue", size = 1)
+p
+```
+
+Again we see that the actual data is 0 way more frequently than the model expects. Our model skews too much to the left to line up the means. Except for this peak at 0 however, the assumption of a poisson-distribution does not look too bad.
+
+We speculate that the process of "whether any fledglings leave the nest" (binary with y=0 or y>0) and the process of "how many fledgelings leave the nest" might be better modeled separately.
+
+### f)
+
+
+\begin{equation}
+\begin{split}
+  \hat\beta_0 &= \log(\lambda_0) -\frac{\theta^2}{2\omega^2}\\ 
+  \hat\beta_1 &= \frac{\theta}{\omega^2}\\ 
+  \hat\beta_2 &= -\frac{1}{2\omega^2}
+\end{split}
+\end{equation}
+
+\begin{equation}
+\begin{split}
+  \hat\omega &= \sqrt{\frac{1}{-2\hat{\beta_2}}} = g(\hat{\beta_1},\hat{\beta_2}) \\
+  \hat\theta &= \omega^2\hat{\beta_1} = -\frac{\hat{\beta_1}}{2\hat{\beta_2}}  = h(\hat{\beta_1},\hat{\beta_2})
+\end{split}
+\end{equation}
+
+```{r task2f}
+beta_1 <- coef(m.birds)[2]
+beta_2 <- coef(m.birds)[3]
+
+omega <- sqrt(-1/(2*beta_2))
+theta <- beta_1/(-2*beta_2)
+```
+
+By using the equations and chunk above we have found that $\omega=`r omega`$ and $\theta=`r theta`$.
+
+In order to find the standard error for $\omega$ and $\theta$ we use the delta method to find the variance of the two parameters:
+
+\begin{equation}
+\begin{split}
+  \text{Var}(\hat\omega) &= (\frac{\partial g}{\partial \hat{\beta_1}})^2\cdot \text{Var}(\hat{\beta_1}) + (\frac{\partial g}{\partial \hat{\beta_2}})^2\cdot \text{Var}(\hat{\beta_2}) + 2(\frac{\partial g^2}{\partial \hat{\beta_1} \partial \hat{\beta_2}})\cdot \text{Cov}(\hat{\beta_1},\hat{\beta_2}) \\
+  &= (\frac{\partial g}{\partial \hat{\beta_2}})^2\cdot \text{Var}(\hat{\beta_2}) \\
+  &= (\frac{1}{\sqrt{-8\hat{\beta_2^3}}})^2 \cdot \text{Var}(\hat{\beta_2})
+\end{split}
+\end{equation}
+
+
+
+\begin{equation}
+\begin{split}
+  \text{Var}(\hat\theta) &= (\frac{\partial h}{\partial \hat{\beta_1}})^2\cdot \text{Var}(\hat{\beta_1}) + (\frac{\partial h}{\partial \hat{\beta_2}})^2\cdot \text{Var}(\hat{\beta_2}) + 2(\frac{\partial h}{\partial \hat{\beta_1}})(\frac{\partial h}{\hat\beta_2})\cdot \text{Cov}(\hat{\beta_1},\hat{\beta_2}) \\
+  &= (-\frac{1}{2\hat\beta_2})^2 \cdot \text{Var}(\hat\beta_1)+(\frac{\hat\beta_1}{2\hat\beta_2^2})^2\cdot \text{Var}(\hat\beta_2)+2(\frac{-1}{2\hat\beta_2})(\frac{\hat\beta_1}{2\hat\beta_2^2})\cdot \text{Cov}(\hat\beta_1,\hat\beta_2) 
+\end{split}
+\end{equation}
+
+
+
+```{r task2f_2}
+# Variance and covariance
+var.beta_1 <- m.birds$vcov[2,2]
+var.beta_2 <- m.birds$vcov[3,3]
+cov.beta_12 <- m.birds$vcov[2:3,2:3]
+
+#gradient of g and h
+gradient_g <- c(0,1/sqrt(-8*beta_2^3))
+gradient_h <- c(-1/(2*beta_2),beta_1/(2*beta_2^2))
+
+# Computing standard errors
+sd_omega <- sqrt(t(gradient_g)%*%cov.beta_12%*%gradient_g)
+sd_theta <- sqrt(t(gradient_h)%*%cov.beta_12%*%gradient_h)
+```
+
+The standard error for $\omega$ and $\theta$ respectively is `r sd_omega` and `r sd_theta`.
+
+### g)
+
+Based on the fitted model the estimated optimal date is $\theta$, as the expected number of fledglings on time t $\lambda_i(t)$ is gaussian distributed with mean $\theta$. Because of global warming, the actual mean time can change to earlier dates. We will perform a hypothesis test to check if this is the case. We let $\mu$ denote the mean value of $t$, and define the hypothesis as $$H_0: \theta = \mu; H_1: \theta\neq\mu.$$ We must assume that $\theta$ and the mean $\mu$ is approximately gaussian, and that they are independent of each other. As $\mu$ is found from some given values of $t$, and $\theta$ can be seen as a function of $\y_i$ s, we can assume this is the case.
+
+```{r task 2g}
+ts <- data[,2]
+mu <- sum(ts)/length(ts)
+z.obs <- (mu - theta)/(omega/sqrt(length(ts)))
+p_val <- 2*pnorm(-abs(z.obs))  # symmatry of normal distribution
+```
+
+The p-value for this hypothesis test is `r p_val`, which indicates that we can reject the null hypothesis for a significance level of 0.05. That is, the mean value of t in the population we are looking at is different from the estimated optimal time based on the fitted model.
+
+### h)
+
