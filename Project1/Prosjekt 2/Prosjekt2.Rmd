@@ -1,0 +1,122 @@
+---
+title: "Project 2"
+author: "Erlees@stud.ntnu.no (10028), Simonli@stud.ntnu.no (10014)"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+	fig.align = "center",
+	fig.height = 3.9,
+	fig.width = 6,
+	message = FALSE,
+	warning = FALSE,
+	cache = TRUE,
+	prompt = FALSE,
+	size = "scriptsize",
+	strip.white = TRUE,
+	tidy = TRUE
+)
+library(tidyverse)
+library(gridExtra)
+```
+
+```{r libraries,eval=TRUE, echo=TRUE, include=FALSE}
+library(knitr)
+library(MASS)
+library(dplyr)
+library(ISLR)
+library(rmarkdown)
+library(dplyr)
+library(ggplot2) # Plotting with ggplot
+library(palmerpenguins)  # Contains the data set 'penguins'.
+library(GGally)
+library(ggfortify)  # For model checking
+library(tidyverse)
+library(class) # For class input in knn modeling
+library(pROC)
+library(plotROC) # For plotting with ROC
+library(boot)
+```
+
+# Problem 1
+```{r problem1}
+mammals <- read.table("https://www.math.ntnu.no/~jarlet/statmod/mammals.dat",header=T)
+```
+
+In the first problem of this project we will consider data on brain size and body size on 62 different mammal species. We will analyse the relation between the two by making different models where brain size is the response with body size as its factor.
+
+### a)
+
+```{r task1a, fig.height=7, fig.width=16}
+#both linear
+par(mfrow=c(1,3))
+
+plot(brain~body, data = mammals, xlim = c(0,700), ylim = c(0,700), main = "Linear")
+abline(lm(brain~body, data = mammals))
+
+# body log
+plot(brain~log(body), data = mammals,ylim = c(0,700),main = "Log(body)")
+abline(lm(brain~log(body), data = mammals))
+
+# both log
+plot(log(brain)~log(body), data = mammals,main = "Both log")
+abline(lm(log(brain)~log(body), data = mammals))
+
+H_0 <- lm(log(brain)~log(body), data = mammals)
+summary(H_0)
+```
+
+In the plots above we observe that there is a linear relationship between the logarithm of brain size and the logarithm of body size. This indicates that we should use these transformations when applying a linear model on the data set.  
+
+### b)
+
+```{r task1b}
+H_1 <- lm(log(brain)~log(body)+(species=="Human"), data = mammals)
+summary(H_1)
+
+# What is the expected brain size based on the other mammals?
+mammals_exchuman <- mammals[-c(32),]  # observed that human row is 32, we removes this row
+
+H_1_exchuman <- lm(log(brain)~log(body), data = mammals_exchuman)
+summary(H_1_exchuman)
+
+obs_brainsize <- mammals[c(32),][3]  # observed brain size for humans
+
+coeffs <- H_1_exchuman$coefficients
+exp_brainsize <- exp(coeffs[1]+coeffs[2]*log(mammals[c(32),2])) # expected brain size for humans based on the other mammals
+```
+
+The observed brain size from the data set is `r obs_brainsize`, while the expected brain size based on a linear model where humans where excluded from the data set is `r exp_brainsize`. That is the observed brain size is `r obs_brainsize/exp_brainsize` larger then the expected brain size.
+
+We will now perform a hypothesis test where the null hypothesis $H_0: \beta_{human} \leq 0$ will be tested against $H_1: \beta_{human}\gt 0.$
+
+
+```{r task1b_2}
+AIC(H_0)
+AIC(H_1)
+AIC(H_1_exchuman)
+
+anova(H_1,H_0, test = "LRT")
+```
+
+First we observe that the AIC for the model where we include an own parameter for human is smaller than the AIC where we do not. This is an indication that the model is better when it knows that the expected brain size for humans should differ from the expected brain size for other mammals. 
+
+
+
+### c)
+
+
+### d)
+
+
+### e)
+
+
+### f)
+
+
+
+# Problem 2
