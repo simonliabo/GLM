@@ -15,8 +15,6 @@ library(gridExtra)
 
 ### a)
 
-test
-
 The pdf for a Poisson distribution is $f(x)=\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}$ where the expected value $\lambda$ is given by the cononical link function $\lambda_i=e^{\eta_i}$ and opposite $\eta_i = \ln(\lambda_i)$. To find the log likelihood function we first need the likelihood function $L(\beta)$. $$L(\beta)=\prod_{i=1}^n{\frac{e^{-\lambda_i}\lambda_i^{y_i}}{y_i!}}.$$ Fahrmeir (2013, p.654) says the factors $\frac{1}{y_i!}$ can be omitted when maximizing the likelihood because they do not depend on $\lambda$. I therefore exclude these factors when deriving the expressions.
 
 Log likelihood function:
