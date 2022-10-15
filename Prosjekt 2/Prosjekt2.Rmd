@@ -104,7 +104,7 @@ anova(H_1,H_0, test = "LRT")
 
 First we observe that the AIC for the model where we include an own parameter for human is smaller than the AIC where we do not. This is an indication that the model is better when it knows that the expected brain size for humans should differ from the expected brain size for other mammals. 
 
-
+Heyy
 
 ### c)
 
